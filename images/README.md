@@ -1,0 +1,1 @@
+Hi! Put images that you'd like to sort into this directory.

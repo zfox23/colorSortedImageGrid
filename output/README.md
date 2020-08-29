@@ -1,0 +1,1 @@
+Output images will go in here by default.
