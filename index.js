@@ -236,7 +236,7 @@ function createColorSortedImageGrid() {
             });
             
             let resizedImageArray = [];
-            let table = new AsciiTable('Image Information');
+            let table = new AsciiTable('Image Information - Dominant Color');
             let tableHeadings = ['Filename'];
             Object.values(SORT_PARAMETERS).forEach((parameter) => {
                 if (argv.sortParameter === parameter) {
