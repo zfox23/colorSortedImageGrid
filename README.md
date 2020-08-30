@@ -13,8 +13,10 @@ Given a folder of images, sorts the images by color, then outputs the color-sort
     - The script's default behavior is to sort your images by color in row-major order, creating a square output image.
 - Run `node index.js -h` to see all possible command line arguments.
 
-## A few notes
+## A few notes...
 - I've left some test images inside `./images/test/` of various colors and sizes which you can use to test out the script.
     - Try running `node index.js -i "./images/test"`
+- Experiment with the way the images are sorted by using the `--sortParameter`...parameter...
+- You can adjust the default column-major sorting order to row-major by passing `--sortOrder row-major` to the script.
 
 Enjoy! 💖

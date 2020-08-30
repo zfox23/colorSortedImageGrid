@@ -19,7 +19,7 @@ const argv = yargs
         describe: 'Number of rows in the output image',
         type: 'number'
     })
-    .option('numCols', {
+    .option('numColumns', {
         alias: 'c',
         describe: 'Number of columns in the output image',
         type: 'number'
@@ -32,8 +32,7 @@ const argv = yargs
     .option('outputFilename', {
         alias: 'o',
         describe: 'The directory and filename at which you want the final output image to appear. Must include the image extensions, i.e. `./output/output.png`.',
-        type: 'string',
-        default: './output/output.png'
+        type: 'string'
     })
     .option('sortOrder', {
         alias: 's',
@@ -165,24 +164,25 @@ function createOutputGrid(imageArray) {
     return new Promise((resolve, reject) => {
         console.log(`\nCompositing output image in ${argv.sortOrder} order...`);
         
-        new Jimp(argv.numCols * argv.pxPerImage, argv.numRows * argv.pxPerImage, (err, outputImage) => {
+        new Jimp(argv.numColumns * argv.pxPerImage, argv.numRows * argv.pxPerImage, (err, outputImage) => {
             if (err) {
                 reject(err);
                 return;
             }
 
-            for (let i = 0; i < argv.numCols; i++) {
-                for (let j = 0; j < argv.numRows; j++) {
-                    let outputX, outputY;
-                    if (argv.sortOrder === SORT_ORDERS.ROW_MAJOR) {
-                        outputX = j * argv.pxPerImage;
-                        outputY = i * argv.pxPerImage;
-                    } else if (argv.sortOrder === SORT_ORDERS.COLUMN_MAJOR) {
-                        outputX = i * argv.pxPerImage;
-                        outputY = j * argv.pxPerImage;
-                    }
+            let currentImageArrayIndex = 0;
+            let xLimiter, yLimiter;
+            if (argv.sortOrder === SORT_ORDERS.ROW_MAJOR) {
+                xLimiter = argv.numRows;
+                yLimiter = argv.numColumns;
+            } else if (argv.sortOrder === SORT_ORDERS.COLUMN_MAJOR) {
+                xLimiter = argv.numColumns;
+                yLimiter = argv.numRows;
+            }
 
-                    let currentImage = imageArray[i * argv.numCols + j];
+            for (let outputX = 0; outputX < xLimiter * argv.pxPerImage; outputX += argv.pxPerImage) {
+                for (let outputY = 0; outputY < yLimiter * argv.pxPerImage; outputY += argv.pxPerImage) {
+                    let currentImage = imageArray[currentImageArrayIndex++];
 
                     if (currentImage) {
                         outputImage.composite(currentImage, outputX, outputY);
@@ -196,21 +196,21 @@ function createOutputGrid(imageArray) {
     });
 }
 
-function setNumRowsAndNumCols(numImages) {
-    if (!argv.numRows || !argv.numCols) {
+function setNumRowsAndNumCols(numInputImages) {
+    if (!argv.numRows || !argv.numColumns) {
         if (argv.numRows) {
-            argv.numCols = Math.ceil(numInputImages / argv.numRows);
+            argv.numColumns = Math.ceil(numInputImages / argv.numRows);
             return;
         }
 
-        if (argv.numCols) {
-            argv.numRows = Math.ceil(numInputImages / argv.numCols);
+        if (argv.numColumns) {
+            argv.numRows = Math.ceil(numInputImages / argv.numColumns);
             return;
         }
 
-        let numBoth = Math.ceil(Math.sqrt(numImages));
+        let numBoth = Math.ceil(Math.sqrt(numInputImages));
         argv.numRows = numBoth;
-        argv.numCols = numBoth;
+        argv.numColumns = numBoth;
     }
 }
 
@@ -225,7 +225,7 @@ function createColorSortedImageGrid() {
 
     console.log(`Detecting number of columns and number of rows in output image...`);
     setNumRowsAndNumCols(imageFilenames.length);
-    console.log(`Done!\nNumber of input images: ${imageFilenames.length}\nNumber of columns: ${argv.numCols}\nNumber of rows: ${argv.numRows}\n`);
+    console.log(`Done!\nNumber of input images: ${imageFilenames.length}\nNumber of columns: ${argv.numColumns}\nNumber of rows: ${argv.numRows}\n`);
 
     processImages(imageFilenames)
         .then((imageDataArray) => {
@@ -258,9 +258,12 @@ function createColorSortedImageGrid() {
             createOutputGrid(resizedImageArray)
                 .then((outputJimpImage) => {
                     let outputImageFilename = argv["outputFilename"];
+                    if (!outputImageFilename) {
+                        outputImageFilename = `./output/${Date.now()}_${argv.numColumns}x${argv.numRows}_${argv.sortOrder}_${argv.sortParameter}.png`
+                    }
                     console.log(`\nWriting output image to \`${outputImageFilename}\`...`);
                     outputJimpImage.write(outputImageFilename);
-                    console.log(`Done! Find your color-sorted image grid at:\n\n${"*".repeat(outputImageFilename.length + 4)}\n* ${outputImageFilename} *\n${"*".repeat(outputImageFilename.length + 4)}\n`);
+                    console.log(`Done! Find your color-sorted image grid at:\n\n${"*".repeat(outputImageFilename.length + 4)}\n\n* ${outputImageFilename} *\n\n${"*".repeat(outputImageFilename.length + 4)}\n`);
                 })
                 .catch((error) => {
                     console.error(`Error when processing images! Error:\n${error}`);
