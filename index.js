@@ -37,7 +37,7 @@ const argv = yargs
     })
     .option('pxPerImage', {
         alias: 'px',
-        describe: 'Number of pixels per sub-image in the output image. The same number will be used for width and height. Defaults to the minimum dimension across all input images.',
+        describe: 'Number of pixels per side per sub-image in the output image. The same number of pixels will be used for width and height. Defaults to the minimum dimension across all input images.',
         type: 'number'
     })
     .option('outputFilename', {
