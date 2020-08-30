@@ -3,7 +3,7 @@ Given a folder of images, sorts the images by color, then outputs the color-sort
 
 ![Example Output Image](exampleOutput.gif)
 
-I generated the three frames from this example using the same set of my photographs. Here were the three commands I ran to achieve the three frames in the above GIF:
+I generated the three frames from this example using the same set of [my photographs](https://zachfox.photography/). Here were the three commands I ran to achieve the three frames in the above GIF:
 1. `node .\index.js --pxPerImage 128 --visualizationMode normal`
 2. `node .\index.js --pxPerImage 128 --visualizationMode 4x4`
 3. `node .\index.js --pxPerImage 128 --visualizationMode dominant`
