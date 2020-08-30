@@ -1,0 +1,25 @@
+{
+  "name": "colorsortedimagegrid",
+  "version": "1.0.0",
+  "description": "Given a folder of images, sorts the images by color, then outputs the color-sorted image into one NxM image grid.",
+  "main": "index.js",
+  "dependencies": {
+    "ascii-table": "0.0.9",
+    "jimp": "^0.16.1",
+    "yargs": "^15.4.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zfox23/colorSortedImageGrid.git"
+  },
+  "author": "Zach Fox",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/zfox23/colorSortedImageGrid/issues"
+  },
+  "homepage": "https://github.com/zfox23/colorSortedImageGrid#readme"
+}

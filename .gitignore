@@ -1,3 +1,8 @@
+node_modules
+
 images/*
 !images/README.md
-node_modules
+!images/test
+
+output/*
+!output/README.md
