@@ -11,7 +11,7 @@ I generated the three frames from this example using the same set of [my photogr
 # How do I use this?
 1. Clone this repository to your local disk, or download the latest version of the `main` branch code [here](https://github.com/zfox23/colorSortedImageGrid/archive/main.zip).
 2. Ensure NodeJS v12.18.x is installed: [https://nodejs.org/en/](https://nodejs.org/en/)
-3. Place the images that you'd like to be a part of your output images into `<repo directory>\images`.
+3. Place the images that you'd like to be a part of your output image into `<the downloaded repository directory>\images`.
     - These images must be in `.jpg` or `.png` format.
 4. Open a PowerShell/Command Prompt/Terminal window, then `cd` into the directory containing this repository.
 5. Run `npm i` to install this project's dependencies.
