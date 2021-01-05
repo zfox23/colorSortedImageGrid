@@ -42,7 +42,7 @@ const argv = yargs
     })
     .option('outputFilename', {
         alias: 'o',
-        describe: 'The directory and filename at which you want the final output image to appear. Must include the image extensions, i.e. `./output/output.png`.',
+        describe: 'The directory and filename at which you want the final output image to appear. Must include the image extensions, i.e. `./output/output.png`. Set this value to "files" if you want the sorted image grid to be output to enumerated files in the `./output/` folder.',
         type: 'string'
     })
     .option('sortOrder', {
@@ -383,21 +383,31 @@ function createColorSortedImageGrid() {
             console.log(`Sorted!`);
 
             // We're getting close...!
-            createOutputGrid(sortedImageArray)
-                .then((outputJimpImage) => {
-                    let outputImageFilename = argv["outputFilename"];
-                    // Determine a nice and fancy output image filename if the user didn't
-                    // specify one manually.
-                    if (!outputImageFilename) {
-                        outputImageFilename = `./output/${Date.now()}_${argv.numColumns}x${argv.numRows}_${argv.sortOrder}_${argv.sortParameter}_${argv.visualizationMode}.png`
-                    }
-                    console.log(`\nWriting output image to \`${outputImageFilename}\`...`);
-                    outputJimpImage.write(outputImageFilename);
-                    console.log(`Done! Find your color-sorted image grid at:\n\n${"*".repeat(outputImageFilename.length + 4)}\n\n* ${outputImageFilename} *\n\n${"*".repeat(outputImageFilename.length + 4)}\n`);
-                })
-                .catch((error) => {
-                    console.error(`Error when processing images! Error:\n${error}`);
-                });
+
+            if (argv["outputFilename"] === "files") {
+                let outputImageFolder = `./output/`;
+                console.log(`\nWriting output images in numeric order to \`${outputImageFolder}<n>.png\`...`);
+                for (let i = 0; i < sortedImageArray.length; i++) {
+                    sortedImageArray[i].write(`${outputImageFolder}${(i + 1).toString().padStart(sortedImageArray.length.toString().length, '0')}.png`);
+                }
+                console.log(`Done! Find your color-sorted image files inside:\n\n${"*".repeat(outputImageFolder.length + 4)}\n\n* ${outputImageFolder} *\n\n${"*".repeat(outputImageFolder.length + 4)}\n`);
+            } else {
+                createOutputGrid(sortedImageArray)
+                    .then((outputJimpImage) => {
+                        let outputImageFilename = argv["outputFilename"];
+                        // Determine a nice and fancy output image filename if the user didn't
+                        // specify one manually.
+                        if (!outputImageFilename) {
+                            outputImageFilename = `./output/${Date.now()}_${argv.numColumns}x${argv.numRows}_${argv.sortOrder}_${argv.sortParameter}_${argv.visualizationMode}.png`
+                        }
+                        console.log(`\nWriting output image to \`${outputImageFilename}\`...`);
+                        outputJimpImage.write(outputImageFilename);
+                        console.log(`Done! Find your color-sorted image grid at:\n\n${"*".repeat(outputImageFilename.length + 4)}\n\n* ${outputImageFilename} *\n\n${"*".repeat(outputImageFilename.length + 4)}\n`);
+                    })
+                    .catch((error) => {
+                        console.error(`Error when processing images! Error:\n${error}`);
+                    });
+            }
         })
         .catch((error) => {
             console.error(`Error when processing images! Error:\n${error}`);
