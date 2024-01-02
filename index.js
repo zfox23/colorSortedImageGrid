@@ -11,10 +11,11 @@ const SORT_ORDERS = {
 };
 // Define the posible input image sort parameters in this 'enum'.
 const SORT_PARAMETERS = {
+    'FILENAME': 'filename',
     'HUE': 'hue',
     'SATURATION': 'saturation',
     'VALUE': 'value',
-    'LUMA': 'luma'
+    'LUMA': 'luma',
 };
 // Define the possible visualization modes in this 'enum'.
 const VISUALIZATION_MODES = {
@@ -148,11 +149,11 @@ function determinePxPerImage(imageDataArray) {
 function processImages(imageFilenames) {
     return new Promise((resolve, reject) => {
         console.log(`Processing all images...`);
-        
+
         if (argv.greyscale) {
             console.log(`(Making each image greyscale first...)`);
         }
-        
+
         let imageDataArray = [];
 
         imageFilenames.forEach(async (imageFilename) => {
@@ -165,41 +166,43 @@ function processImages(imageFilenames) {
                         "image": currentImage,
                     };
 
-                    // This is an interesting argument to set to `true` when sorting by `value`.
-                    if (argv.greyscale) {
-                        currentImageData.image.greyscale();
+                    if (argv.sortParameter !== SORT_PARAMETERS.FILENAME) {
+                        // This is an interesting argument to set to `true` when sorting by `value`.
+                        if (argv.greyscale) {
+                            currentImageData.image.greyscale();
+                        }
+
+                        // Make a clone of this input image upon which we can operate.
+                        currentImageData["imageClone"] = currentImage.clone();
+
+                        // If we have this cool visualization mode set...
+                        if (argv.visualizationMode === VISUALIZATION_MODES.FOURBYFOUR) {
+                            currentImageData["4x4"] = currentImage.clone().resize(4, 4, Jimp.RESIZE_BICUBIC);
+                        }
+
+                        // Resize the cloned image to 1x1px using the bicubic method.
+                        // This will give us an output image whose only pixel
+                        // contains the average color of the input image (for some definition of "average").
+                        currentImageData["imageClone"].resize(1, 1, Jimp.RESIZE_BICUBIC);
+                        // Get the pixel color from the 1x1px image and translate that decimal color into a
+                        // properly-formatted hex string.
+                        let colorHexString = currentImageData["imageClone"].getPixelColor(0, 0).toString(16).substr(0, 6).padStart(6, '0');
+                        // For easier operation later, turn that hex string into an { r, g, b } object.
+                        let colorHex = {
+                            r: parseInt(colorHexString.substr(0, 2), 16),
+                            g: parseInt(colorHexString.substr(2, 2), 16),
+                            b: parseInt(colorHexString.substr(4, 2), 16)
+                        };
+                        // Create a new `colorInfo` Object that initially contains
+                        // the hue, saturation, and value data associated with the current input image.
+                        let colorInfo = hexToHSV(colorHex);
+                        // Add the current image's luma value to the `colorInfo` Object.
+                        colorInfo["luma"] = 0.3 * colorHex.r + 0.59 * colorHex.g + 0.11 * colorHex.b;
+                        colorInfo["colorHexString"] = colorHexString;
+
+                        // Save the calculated color info to our `currentImageData` Object.
+                        currentImageData["colorInfo"] = colorInfo;
                     }
-
-                    // Make a clone of this input image upon which we can operate.
-                    currentImageData["imageClone"] = currentImage.clone();
-
-                    // If we have this cool visualization mode set...
-                    if (argv.visualizationMode === VISUALIZATION_MODES.FOURBYFOUR) {
-                        currentImageData["4x4"] = currentImage.clone().resize(4, 4, Jimp.RESIZE_BICUBIC);
-                    }
-
-                    // Resize the cloned image to 1x1px using the bicubic method.
-                    // This will give us an output image whose only pixel
-                    // contains the average color of the input image (for some definition of "average").
-                    currentImageData["imageClone"].resize(1, 1, Jimp.RESIZE_BICUBIC);
-                    // Get the pixel color from the 1x1px image and translate that decimal color into a
-                    // properly-formatted hex string.
-                    let colorHexString = currentImageData["imageClone"].getPixelColor(0, 0).toString(16).substr(0, 6).padStart(6, '0');
-                    // For easier operation later, turn that hex string into an { r, g, b } object.
-                    let colorHex = {
-                        r: parseInt(colorHexString.substr(0, 2), 16),
-                        g: parseInt(colorHexString.substr(2, 2), 16),
-                        b: parseInt(colorHexString.substr(4, 2), 16)
-                    };
-                    // Create a new `colorInfo` Object that initially contains
-                    // the hue, saturation, and value data associated with the current input image.
-                    let colorInfo = hexToHSV(colorHex);
-                    // Add the current image's luma value to the `colorInfo` Object.
-                    colorInfo["luma"] = 0.3 * colorHex.r + 0.59 * colorHex.g + 0.11 * colorHex.b;
-                    colorInfo["colorHexString"] = colorHexString;
-
-                    // Save the calculated color info to our `currentImageData` Object.
-                    currentImageData["colorInfo"] = colorInfo;
 
                     // Push the almost-fully-constructed image data Object to the `imageDataArray`,
                     // which will be used by the function caller.
@@ -247,7 +250,7 @@ function processImages(imageFilenames) {
                                         resolve(imageDataArray);
                                     }
                                 });
-                            });                            
+                            });
                             return;
                         }
                     }
@@ -262,7 +265,7 @@ function processImages(imageFilenames) {
 function createOutputGrid(imageArray) {
     return new Promise((resolve, reject) => {
         console.log(`\nCompositing output image in ${argv.sortOrder} order...`);
-        
+
         // Create a new `Jimp` image big enough to hold all of our properly-resized input images.
         new Jimp(argv.numColumns * argv.pxPerImage, argv.numRows * argv.pxPerImage, (err, outputImage) => {
             if (err) {
@@ -272,28 +275,32 @@ function createOutputGrid(imageArray) {
 
             let currentImageArrayIndex = 0;
 
-            // This logic determines how the below loop executes based on whether the
-            // user wants to see their input images ordered in row-major order or
-            // column-major order.
-            let xLimiter, yLimiter;
             if (argv.sortOrder === SORT_ORDERS.ROW_MAJOR) {
-                xLimiter = argv.numRows;
-                yLimiter = argv.numColumns;
-            } else if (argv.sortOrder === SORT_ORDERS.COLUMN_MAJOR) {
-                xLimiter = argv.numColumns;
-                yLimiter = argv.numRows;
-            }
+                for (let outputY = 0; outputY < argv.numRows * argv.pxPerImage; outputY += argv.pxPerImage) {
+                    for (let outputX = 0; outputX < argv.numColumns * argv.pxPerImage; outputX += argv.pxPerImage) {
+                        let currentImage = imageArray[currentImageArrayIndex++];
 
-            for (let outputX = 0; outputX < xLimiter * argv.pxPerImage; outputX += argv.pxPerImage) {
-                for (let outputY = 0; outputY < yLimiter * argv.pxPerImage; outputY += argv.pxPerImage) {
-                    let currentImage = imageArray[currentImageArrayIndex++];
+                        if (currentImage) {
+                            outputImage.composite(currentImage, outputX, outputY);
+                        } else {
+                            console.error(`Invalid \`currentImage\`!`);
+                        }
+                    }
+                }
+            } else {
+                for (let outputX = 0; outputX < argv.numColumns * argv.pxPerImage; outputX += argv.pxPerImage) {
+                    for (let outputY = 0; outputY < argv.numRows * argv.pxPerImage; outputY += argv.pxPerImage) {
+                        let currentImage = imageArray[currentImageArrayIndex++];
 
-                    if (currentImage) {
-                        outputImage.composite(currentImage, outputX, outputY);
+                        if (currentImage) {
+                            outputImage.composite(currentImage, outputX, outputY);
+                        } else {
+                            console.error(`Invalid \`currentImage\`!`);
+                        }
                     }
                 }
             }
-            
+
             console.log(`Done compositing output image!`);
             resolve(outputImage);
         });
@@ -347,30 +354,42 @@ function createColorSortedImageGrid() {
     // `processImages` will get us our specially-formatted, unsorted `imageDataArray`.
     processImages(imageFilenames)
         .then((imageDataArray) => {
-            console.log(`\nImages processed successfully! Sorting images by color into \`sortedImageArray\`...`);
+            console.log(`\nImages processed successfully! Sorting images into \`sortedImageArray\`...`);
 
             // Sort the `imageDataArray` by the specified sort parameter.
             imageDataArray.sort((a, b) => {
-                return a.colorInfo[argv.sortParameter] - b.colorInfo[argv.sortParameter];
+                if (argv.sortParameter === SORT_PARAMETERS.FILENAME) {
+                    return a.imageFilename.localeCompare(b.imageFilename);
+                } else {
+                    return a.colorInfo[argv.sortParameter] - b.colorInfo[argv.sortParameter];
+                }
             });
             // Now we have a properly-sorted array, where each element in the array contains an Object.
             // Not quite what we want...
-            
+
             // Build a pretty ASCII table for the logs
             // c:
             let sortedImageArray = [];
             let table = new AsciiTable('Image Information - Dominant Color');
-            let tableHeadings = ['Filename'];
-            Object.values(SORT_PARAMETERS).forEach((parameter) => {
-                if (argv.sortParameter === parameter) {
-                    tableHeadings.push(`${parameter}*`);
-                } else {
-                    tableHeadings.push(parameter);
-                }
-            });
+            let tableHeadings = [];
+            if (argv.sortParameter === SORT_PARAMETERS.FILENAME) {
+                tableHeadings.push(`${argv.sortParameter}*`);
+            } else {
+                Object.values(SORT_PARAMETERS).forEach((parameter) => {
+                    if (argv.sortParameter === parameter) {
+                        tableHeadings.push(`${parameter}*`);
+                    } else {
+                        tableHeadings.push(parameter);
+                    }
+                });
+            }
             table.setHeading(tableHeadings);
             imageDataArray.forEach((currentImageData) => {
-                table.addRow(currentImageData.imageFilename, currentImageData.colorInfo.hue, currentImageData.colorInfo.saturation, currentImageData.colorInfo.value, currentImageData.colorInfo.luma.toFixed(2));
+                if (argv.sortParameter === SORT_PARAMETERS.FILENAME) {
+                    table.addRow(currentImageData.imageFilename);
+                } else {
+                    table.addRow(currentImageData.imageFilename, currentImageData.colorInfo.hue, currentImageData.colorInfo.saturation, currentImageData.colorInfo.value, currentImageData.colorInfo.luma.toFixed(2));
+                }
                 // Push each `outputImage` into our `sortedImageArray`.
                 // The `sortedImageArray` is what will actually be parsed by our
                 // `createOutputGrid()` function.
@@ -384,7 +403,9 @@ function createColorSortedImageGrid() {
 
             // We're getting close...!
 
-            if (argv["outputFilename"] === "files") {
+            if (argv["outputFilename"] === "table") {
+
+            } else if (argv["outputFilename"] === "files") {
                 let outputImageFolder = `./output/`;
                 console.log(`\nWriting output images in numeric order to \`${outputImageFolder}<n>.png\`...`);
                 for (let i = 0; i < sortedImageArray.length; i++) {

@@ -27,4 +27,7 @@ I generated the three frames from this example using the same set of [my photogr
 - Experiment with the way the images are sorted by using the `--sortParameter`...parameter...
 - You can adjust the default column-major sorting order to row-major by passing `--sortOrder row-major` to the script.
 
+# Some other commands I've run...
+- `node index.js -i d:/Code/colorSortedImageGrid/images/wow -pxPerImage 128 -c 16`
+
 Enjoy! 💖
