@@ -338,7 +338,7 @@ function createColorSortedImageGrid() {
     // Get all the filenames from our input directory.
     let imageFilenames = fs.readdirSync(argv.inputDirectory);
     // Discard all files in the input directory that aren't JPGs or PNGs.
-    imageFilenames = imageFilenames.filter((current) => { return (current.indexOf('.jpg') > -1 || current.indexOf('.png') > -1); });
+    imageFilenames = imageFilenames.filter((current) => { return (current.toLowerCase().indexOf('.jpg') > -1 || current.toLowerCase().indexOf('.png') > -1); });
 
     // Uh oh! Error! Stinky!
     if (imageFilenames.length === 0) {
