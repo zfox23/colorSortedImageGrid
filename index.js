@@ -1,8 +1,9 @@
 // Include the various necessary library requirements...
-const Jimp = require('jimp');
+const { Jimp } = require("jimp");
 const AsciiTable = require('ascii-table')
 const yargs = require('yargs');
 const fs = require('fs');
+const path = require('path');
 
 // Define the possible input image sort orders in this 'enum'.
 const SORT_ORDERS = {
@@ -159,7 +160,7 @@ function processImages(imageFilenames) {
         imageFilenames.forEach(async (imageFilename) => {
             console.log(`Processing \`${imageFilename}\`...`);
 
-            Jimp.read(`${argv.inputDirectory}/${imageFilename}`)
+            Jimp.read(path.resolve(path.join(argv.inputDirectory, imageFilename)))
                 .then((currentImage) => {
                     let currentImageData = {
                         "imageFilename": imageFilename,
@@ -173,25 +174,26 @@ function processImages(imageFilenames) {
                         }
 
                         // Make a clone of this input image upon which we can operate.
-                        currentImageData["imageClone"] = currentImage.clone();
+                        const imageClone = currentImage.clone();
 
                         // If we have this cool visualization mode set...
                         if (argv.visualizationMode === VISUALIZATION_MODES.FOURBYFOUR) {
-                            currentImageData["4x4"] = currentImage.clone().resize(4, 4, Jimp.RESIZE_BICUBIC);
+                            currentImageData["4x4"] = currentImage.clone().resize({ w: 4, h: 4, method: Jimp.RESIZE_BICUBIC });
                         }
 
                         // Resize the cloned image to 1x1px using the bicubic method.
                         // This will give us an output image whose only pixel
                         // contains the average color of the input image (for some definition of "average").
-                        currentImageData["imageClone"].resize(1, 1, Jimp.RESIZE_BICUBIC);
+                        imageClone.resize({ w: 1, h: 1, mode: Jimp.RESIZE_BICUBIC });
                         // Get the pixel color from the 1x1px image and translate that decimal color into a
                         // properly-formatted hex string.
-                        let colorHexString = currentImageData["imageClone"].getPixelColor(0, 0).toString(16).substr(0, 6).padStart(6, '0');
+                        let colorHexString = imageClone.getPixelColor(0, 0).toString(16).substring(0, 6).padStart(6, '0');
+
                         // For easier operation later, turn that hex string into an { r, g, b } object.
                         let colorHex = {
-                            r: parseInt(colorHexString.substr(0, 2), 16),
-                            g: parseInt(colorHexString.substr(2, 2), 16),
-                            b: parseInt(colorHexString.substr(4, 2), 16)
+                            r: parseInt(colorHexString.substring(0, 2), 16),
+                            g: parseInt(colorHexString.substring(2, 4), 16),
+                            b: parseInt(colorHexString.substring(4, 6), 16)
                         };
                         // Create a new `colorInfo` Object that initially contains
                         // the hue, saturation, and value data associated with the current input image.
@@ -222,14 +224,14 @@ function processImages(imageFilenames) {
                             imageDataArray.forEach((currentImageData) => {
                                 // We use the `cover()` method here. This will ensure there is no
                                 // letterboxing in any of the images present in the output image grid.
-                                currentImageData["outputImage"] = currentImageData.image.clone().cover(argv["pxPerImage"], argv["pxPerImage"]);
+                                currentImageData["outputImage"] = currentImageData.image.clone().cover({ w: argv["pxPerImage"], h: argv["pxPerImage"] });
                             });
 
                             resolve(imageDataArray);
                             return;
                         } else if (argv.visualizationMode === VISUALIZATION_MODES.FOURBYFOUR) {
                             imageDataArray.forEach((currentImageData) => {
-                                currentImageData["outputImage"] = currentImageData["4x4"].resize(argv["pxPerImage"], argv["pxPerImage"], Jimp.RESIZE_NEAREST_NEIGHBOR);
+                                currentImageData["outputImage"] = currentImageData["4x4"].resize({ w: argv["pxPerImage"], h: argv["pxPerImage"], method: Jimp.RESIZE_NEAREST_NEIGHBOR });
                             });
 
                             resolve(imageDataArray);
@@ -237,19 +239,14 @@ function processImages(imageFilenames) {
                         } else if (argv.visualizationMode === VISUALIZATION_MODES.DOMINANT) {
                             let outputImageCount = 0;
                             imageDataArray.forEach((currentImageData) => {
-                                new Jimp(argv.pxPerImage, argv.pxPerImage, parseInt(currentImageData.colorInfo.colorHexString + 'ff', 16), (err, outputImage) => {
-                                    if (err) {
-                                        reject(err);
-                                        return;
-                                    }
+                                const outputImage = new Jimp({ width: argv.pxPerImage, height: argv.pxPerImage, color: parseInt(currentImageData.colorInfo.colorHexString + 'ff', 16) });
 
-                                    currentImageData["outputImage"] = outputImage;
-                                    outputImageCount++;
+                                currentImageData["outputImage"] = outputImage;
+                                outputImageCount++;
 
-                                    if (outputImageCount === imageDataArray.length) {
-                                        resolve(imageDataArray);
-                                    }
-                                });
+                                if (outputImageCount === imageDataArray.length) {
+                                    resolve(imageDataArray);
+                                }
                             });
                             return;
                         }
@@ -267,43 +264,38 @@ function createOutputGrid(imageArray) {
         console.log(`\nCompositing output image in ${argv.sortOrder} order...`);
 
         // Create a new `Jimp` image big enough to hold all of our properly-resized input images.
-        new Jimp(argv.numColumns * argv.pxPerImage, argv.numRows * argv.pxPerImage, (err, outputImage) => {
-            if (err) {
-                reject(err);
-                return;
-            }
+        const outputImage = new Jimp({ width: argv.numColumns * argv.pxPerImage, height: argv.numRows * argv.pxPerImage });
 
-            let currentImageArrayIndex = 0;
+        let currentImageArrayIndex = 0;
 
-            if (argv.sortOrder === SORT_ORDERS.ROW_MAJOR) {
-                for (let outputY = 0; outputY < argv.numRows * argv.pxPerImage; outputY += argv.pxPerImage) {
-                    for (let outputX = 0; outputX < argv.numColumns * argv.pxPerImage; outputX += argv.pxPerImage) {
-                        let currentImage = imageArray[currentImageArrayIndex++];
-
-                        if (currentImage) {
-                            outputImage.composite(currentImage, outputX, outputY);
-                        } else {
-                            console.error(`Invalid \`currentImage\`!`);
-                        }
-                    }
-                }
-            } else {
+        if (argv.sortOrder === SORT_ORDERS.ROW_MAJOR) {
+            for (let outputY = 0; outputY < argv.numRows * argv.pxPerImage; outputY += argv.pxPerImage) {
                 for (let outputX = 0; outputX < argv.numColumns * argv.pxPerImage; outputX += argv.pxPerImage) {
-                    for (let outputY = 0; outputY < argv.numRows * argv.pxPerImage; outputY += argv.pxPerImage) {
-                        let currentImage = imageArray[currentImageArrayIndex++];
+                    let currentImage = imageArray[currentImageArrayIndex++];
 
-                        if (currentImage) {
-                            outputImage.composite(currentImage, outputX, outputY);
-                        } else {
-                            console.error(`Invalid \`currentImage\`!`);
-                        }
+                    if (currentImage) {
+                        outputImage.composite(currentImage, outputX, outputY);
+                    } else {
+                        console.error(`Invalid \`currentImage\`!`);
                     }
                 }
             }
+        } else {
+            for (let outputX = 0; outputX < argv.numColumns * argv.pxPerImage; outputX += argv.pxPerImage) {
+                for (let outputY = 0; outputY < argv.numRows * argv.pxPerImage; outputY += argv.pxPerImage) {
+                    let currentImage = imageArray[currentImageArrayIndex++];
 
-            console.log(`Done compositing output image!`);
-            resolve(outputImage);
-        });
+                    if (currentImage) {
+                        outputImage.composite(currentImage, outputX, outputY);
+                    } else {
+                        console.error(`Invalid \`currentImage\`!`);
+                    }
+                }
+            }
+        }
+
+        console.log(`Done compositing output image!`);
+        resolve(outputImage);
     });
 }
 

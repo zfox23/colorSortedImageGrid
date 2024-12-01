@@ -5,12 +5,13 @@
   "main": "index.js",
   "dependencies": {
     "ascii-table": "0.0.9",
-    "jimp": "^0.16.1",
-    "yargs": "^15.4.1"
+    "jimp": "^1.6.0",
+    "yargs": "^17.7.2"
   },
   "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "test": "node index.js -i .\\images\\test\\ --visualizationMode normal && node index.js -i .\\images\\test\\ --visualizationMode 4x4 && node index.js -i .\\images\\test\\ --visualizationMode dominant"
   },
   "repository": {
     "type": "git",
