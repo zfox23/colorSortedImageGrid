@@ -224,7 +224,8 @@ function processImages(imageFilenames) {
                             imageDataArray.forEach((currentImageData) => {
                                 // We use the `cover()` method here. This will ensure there is no
                                 // letterboxing in any of the images present in the output image grid.
-                                currentImageData["outputImage"] = currentImageData.image.clone().cover({ w: argv["pxPerImage"], h: argv["pxPerImage"] });
+                                /*currentImageData["outputImage"] = currentImageData.image.clone().cover({ w: argv["pxPerImage"], h: (argv["pxPerImage"] * 1.333 ) });*/
+                                currentImageData["outputImage"] = currentImageData.image.clone().cover({ w: argv["pxPerImage"], h: (argv["pxPerImage"] ) });
                             });
 
                             resolve(imageDataArray);
@@ -264,9 +265,43 @@ function createOutputGrid(imageArray) {
         console.log(`\nCompositing output image in ${argv.sortOrder} order...`);
 
         // Create a new `Jimp` image big enough to hold all of our properly-resized input images.
+        /* const outputImage = new Jimp({ width: argv.numColumns * argv.pxPerImage, height: argv.numRows * argv.pxPerImage * 1.333 }); */
         const outputImage = new Jimp({ width: argv.numColumns * argv.pxPerImage, height: argv.numRows * argv.pxPerImage });
 
         let currentImageArrayIndex = 0;
+
+        let columns = argv.numColumns
+        let rows = argv.numRows
+         
+        let diagonals = rows + columns - 1
+           
+        let row = 0
+        let column = 0
+        let num = 0
+            
+        for (let d = 0; d < diagonals; d++) {
+            [row, column] = d < rows ? [d, 0] : [ rows - 1, d - rows + 1] ;
+            
+            while ( ( row >= 0 ) && ( column < columns ) ) {
+                let currentImage = imageArray[num++] ;
+                console.log(`${row},${column}`)
+                
+                let outputX = column * argv.pxPerImage ;
+                column += 1 ;
+                
+                let outputY = row * argv.pxPerImage ;              
+                row -= 1 ;
+                
+                if (currentImage) {
+                    outputImage.composite(currentImage, outputX, outputY);
+                } else {
+                    console.error(`Invalid \`currentImage\`!`);
+                }
+                
+            }
+            
+        }
+/* 
 
         if (argv.sortOrder === SORT_ORDERS.ROW_MAJOR) {
             for (let outputY = 0; outputY < argv.numRows * argv.pxPerImage; outputY += argv.pxPerImage) {
@@ -282,7 +317,7 @@ function createOutputGrid(imageArray) {
             }
         } else {
             for (let outputX = 0; outputX < argv.numColumns * argv.pxPerImage; outputX += argv.pxPerImage) {
-                for (let outputY = 0; outputY < argv.numRows * argv.pxPerImage; outputY += argv.pxPerImage) {
+                for (let outputY = 0; outputY < argv.numRows * argv.pxPerImage; outputY += ( argv.pxPerImage * 1.333 ) ) {
                     let currentImage = imageArray[currentImageArrayIndex++];
 
                     if (currentImage) {
@@ -293,7 +328,7 @@ function createOutputGrid(imageArray) {
                 }
             }
         }
-
+ */
         console.log(`Done compositing output image!`);
         resolve(outputImage);
     });
