@@ -8,7 +8,8 @@ const path = require('path');
 // Define the possible input image sort orders in this 'enum'.
 const SORT_ORDERS = {
     'ROW_MAJOR': 'row-major',
-    'COLUMN_MAJOR': 'column-major'
+    'COLUMN_MAJOR': 'column-major',
+    'DIAGONAL': 'diagonal'
 };
 // Define the posible input image sort parameters in this 'enum'.
 const SORT_PARAMETERS = {
@@ -270,40 +271,38 @@ function createOutputGrid(imageArray) {
 
         let currentImageArrayIndex = 0;
 
-        let columns = argv.numColumns
-        let rows = argv.numRows
-         
-        let diagonals = rows + columns - 1
-           
-        let row = 0
-        let column = 0
-        let num = 0
-            
-        for (let d = 0; d < diagonals; d++) {
-            [row, column] = d < rows ? [d, 0] : [ rows - 1, d - rows + 1] ;
-            
-            while ( ( row >= 0 ) && ( column < columns ) ) {
-                let currentImage = imageArray[num++] ;
-                console.log(`${row},${column}`)
-                
-                let outputX = column * argv.pxPerImage ;
-                column += 1 ;
-                
-                let outputY = row * argv.pxPerImage ;              
-                row -= 1 ;
-                
-                if (currentImage) {
-                    outputImage.composite(currentImage, outputX, outputY);
-                } else {
-                    console.error(`Invalid \`currentImage\`!`);
-                }
-                
-            }
-            
-        }
-/* 
 
-        if (argv.sortOrder === SORT_ORDERS.ROW_MAJOR) {
+        if (argv.sortOrder === SORT_ORDERS.DIAGONAL) {
+            let columns = argv.numColumns
+            let rows = argv.numRows
+             
+            let diagonals = rows + columns - 1
+               
+            let row = 0
+            let column = 0
+            let num = 0
+                
+            for (let d = 0; d < diagonals; d++) {
+                [row, column] = d < rows ? [d, 0] : [ rows - 1, d - rows + 1] ;
+                
+                while ( ( row >= 0 ) && ( column < columns ) ) {
+                    let currentImage = imageArray[num++] ;
+                    
+                    let outputX = column * argv.pxPerImage ;
+                    column += 1 ;
+                    
+                    let outputY = row * argv.pxPerImage ;              
+                    row -= 1 ;
+                    
+                    if (currentImage) {
+                        outputImage.composite(currentImage, outputX, outputY);
+                    } else {
+                        console.error(`Invalid \`currentImage\`!`);
+                    }
+                    
+                }
+            }
+        } else if (argv.sortOrder === SORT_ORDERS.ROW_MAJOR) {
             for (let outputY = 0; outputY < argv.numRows * argv.pxPerImage; outputY += argv.pxPerImage) {
                 for (let outputX = 0; outputX < argv.numColumns * argv.pxPerImage; outputX += argv.pxPerImage) {
                     let currentImage = imageArray[currentImageArrayIndex++];
@@ -328,7 +327,7 @@ function createOutputGrid(imageArray) {
                 }
             }
         }
- */
+ 
         console.log(`Done compositing output image!`);
         resolve(outputImage);
     });
