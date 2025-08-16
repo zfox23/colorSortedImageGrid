@@ -81,6 +81,12 @@ const argv = yargs
         type: "boolean",
         default: false
     })
+    .option('heightscale', {
+        alias: 'hs',
+        describe: 'Useful if your images are rectangular rather than square: image height will be treated as hs * greater than width.',
+        type: "number",
+        default: 1
+    })
     .help()
     .alias('help', 'h')
     .argv;
@@ -179,7 +185,7 @@ function processImages(imageFilenames) {
 
                         // If we have this cool visualization mode set...
                         if (argv.visualizationMode === VISUALIZATION_MODES.FOURBYFOUR) {
-                            currentImageData["4x4"] = currentImage.clone().resize({ w: 4, h: 4, method: Jimp.RESIZE_BICUBIC });
+                            currentImageData["4x4"] = currentImage.clone().resize({ w: 4, h: 4 * argv["heightscale"], method: Jimp.RESIZE_BICUBIC });
                         }
 
                         // Resize the cloned image to 1x1px using the bicubic method.
@@ -225,15 +231,14 @@ function processImages(imageFilenames) {
                             imageDataArray.forEach((currentImageData) => {
                                 // We use the `cover()` method here. This will ensure there is no
                                 // letterboxing in any of the images present in the output image grid.
-                                /*currentImageData["outputImage"] = currentImageData.image.clone().cover({ w: argv["pxPerImage"], h: (argv["pxPerImage"] * 1.333 ) });*/
-                                currentImageData["outputImage"] = currentImageData.image.clone().cover({ w: argv["pxPerImage"], h: (argv["pxPerImage"] ) });
+                                currentImageData["outputImage"] = currentImageData.image.clone().cover({ w: argv["pxPerImage"], h: ( argv["pxPerImage"] * argv["heightscale"] ) });
                             });
 
                             resolve(imageDataArray);
                             return;
                         } else if (argv.visualizationMode === VISUALIZATION_MODES.FOURBYFOUR) {
                             imageDataArray.forEach((currentImageData) => {
-                                currentImageData["outputImage"] = currentImageData["4x4"].resize({ w: argv["pxPerImage"], h: argv["pxPerImage"], method: Jimp.RESIZE_NEAREST_NEIGHBOR });
+                                currentImageData["outputImage"] = currentImageData["4x4"].resize({ w: argv["pxPerImage"], h: argv["pxPerImage"] * argv["heightscale"], method: Jimp.RESIZE_NEAREST_NEIGHBOR });
                             });
 
                             resolve(imageDataArray);
@@ -241,7 +246,7 @@ function processImages(imageFilenames) {
                         } else if (argv.visualizationMode === VISUALIZATION_MODES.DOMINANT) {
                             let outputImageCount = 0;
                             imageDataArray.forEach((currentImageData) => {
-                                const outputImage = new Jimp({ width: argv.pxPerImage, height: argv.pxPerImage, color: parseInt(currentImageData.colorInfo.colorHexString + 'ff', 16) });
+                                const outputImage = new Jimp({ width: argv.pxPerImage, height: argv.pxPerImage * argv["heightscale"], color: parseInt(currentImageData.colorInfo.colorHexString + 'ff', 16) });
 
                                 currentImageData["outputImage"] = outputImage;
                                 outputImageCount++;
@@ -266,8 +271,7 @@ function createOutputGrid(imageArray) {
         console.log(`\nCompositing output image in ${argv.sortOrder} order...`);
 
         // Create a new `Jimp` image big enough to hold all of our properly-resized input images.
-        /* const outputImage = new Jimp({ width: argv.numColumns * argv.pxPerImage, height: argv.numRows * argv.pxPerImage * 1.333 }); */
-        const outputImage = new Jimp({ width: argv.numColumns * argv.pxPerImage, height: argv.numRows * argv.pxPerImage });
+        const outputImage = new Jimp({ width: argv.numColumns * argv.pxPerImage, height: argv.numRows * argv.pxPerImage * argv.heightscale });
 
         let currentImageArrayIndex = 0;
 
@@ -291,7 +295,7 @@ function createOutputGrid(imageArray) {
                     let outputX = column * argv.pxPerImage ;
                     column += 1 ;
                     
-                    let outputY = row * argv.pxPerImage ;              
+                    let outputY = row * argv.pxPerImage * argv.heightscale ;
                     row -= 1 ;
                     
                     if (currentImage) {
@@ -303,7 +307,7 @@ function createOutputGrid(imageArray) {
                 }
             }
         } else if (argv.sortOrder === SORT_ORDERS.ROW_MAJOR) {
-            for (let outputY = 0; outputY < argv.numRows * argv.pxPerImage; outputY += argv.pxPerImage) {
+            for (let outputY = 0; outputY < argv.numRows * argv.pxPerImage; outputY += ( argv.pxPerImage * argv.heightscale ) ) {
                 for (let outputX = 0; outputX < argv.numColumns * argv.pxPerImage; outputX += argv.pxPerImage) {
                     let currentImage = imageArray[currentImageArrayIndex++];
 
@@ -316,7 +320,7 @@ function createOutputGrid(imageArray) {
             }
         } else {
             for (let outputX = 0; outputX < argv.numColumns * argv.pxPerImage; outputX += argv.pxPerImage) {
-                for (let outputY = 0; outputY < argv.numRows * argv.pxPerImage; outputY += ( argv.pxPerImage * 1.333 ) ) {
+                for (let outputY = 0; outputY < argv.numRows * argv.pxPerImage; outputY += ( argv.pxPerImage * argv.heightscale ) ) {
                     let currentImage = imageArray[currentImageArrayIndex++];
 
                     if (currentImage) {
