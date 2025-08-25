@@ -83,7 +83,7 @@ const argv = yargs
     })
     .option('heightScale', {
         alias: 'hs',
-        describe: 'Useful if your images are rectangular rather than square: image height will be treated as hs * greater than width.',
+        describe: 'Images will be clipped to a square aspect ratio by default.This setting applies a ratio between height and width, image height will be x times greater than width. Use values <1 for landscape or values >1 for portrait.',
         type: "number",
         default: 1
     })
