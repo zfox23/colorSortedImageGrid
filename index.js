@@ -146,7 +146,7 @@ function determinePxPerImage(imageDataArray) {
     // The number of pixels for the width and height of each image in the output grid
     // will automatically be determined to be the smallest pixel dimension across all input images.
     imageDataArray.forEach((currentImageData) => {
-        argv.pxPerImage = Math.min(argv.pxPerImage || 999999, Math.min(currentImageData.image.bitmap.width, currentImageData.image.bitmap.height));
+        argv.pxPerImage = Math.min(argv.pxPerImage || 999999, Math.min(currentImageData.image.bitmap.width, currentImageData.image.bitmap.height * argv["heightScale"]));
     });
 
     console.log(`\`pxPerImage\` was automatically set to \`${argv.pxPerImage}px\`!`);
@@ -238,7 +238,7 @@ function processImages(imageFilenames) {
                             return;
                         } else if (argv.visualizationMode === VISUALIZATION_MODES.FOURBYFOUR) {
                             imageDataArray.forEach((currentImageData) => {
-                                currentImageData["outputImage"] = currentImageData["4x4"].resize({ w: argv["pxPerImage"], h: argv["pxPerImage"] * argv["heightScale"], method: Jimp.RESIZE_NEAREST_NEIGHBOR });
+                                currentImageData["outputImage"] = currentImageData["4x4"].resize({ w: argv["pxPerImage"], h: ( argv["pxPerImage"] * argv["heightScale"] ), method: Jimp.RESIZE_NEAREST_NEIGHBOR });
                             });
 
                             resolve(imageDataArray);
@@ -246,7 +246,7 @@ function processImages(imageFilenames) {
                         } else if (argv.visualizationMode === VISUALIZATION_MODES.DOMINANT) {
                             let outputImageCount = 0;
                             imageDataArray.forEach((currentImageData) => {
-                                const outputImage = new Jimp({ width: argv.pxPerImage, height: argv.pxPerImage * argv["heightScale"], color: parseInt(currentImageData.colorInfo.colorHexString + 'ff', 16) });
+                                const outputImage = new Jimp({ width: argv.pxPerImage, height: ( argv.pxPerImage * argv["heightScale"] ), color: parseInt(currentImageData.colorInfo.colorHexString + 'ff', 16) });
 
                                 currentImageData["outputImage"] = outputImage;
                                 outputImageCount++;
@@ -271,7 +271,7 @@ function createOutputGrid(imageArray) {
         console.log(`\nCompositing output image in ${argv.sortOrder} order...`);
 
         // Create a new `Jimp` image big enough to hold all of our properly-resized input images.
-        const outputImage = new Jimp({ width: argv.numColumns * argv.pxPerImage, height: argv.numRows * argv.pxPerImage * argv.heightScale });
+        const outputImage = new Jimp({ width: argv.numColumns * argv.pxPerImage, height: ( argv.numRows * argv.pxPerImage * argv.heightScale ) });
 
         let currentImageArrayIndex = 0;
 
@@ -307,7 +307,7 @@ function createOutputGrid(imageArray) {
                 }
             }
         } else if (argv.sortOrder === SORT_ORDERS.ROW_MAJOR) {
-            for (let outputY = 0; outputY < argv.numRows * argv.pxPerImage; outputY += ( argv.pxPerImage * argv.heightScale ) ) {
+            for (let outputY = 0; outputY < ( argv.numRows * argv.pxPerImage * argv.heightScale ) ; outputY += ( argv.pxPerImage * argv.heightScale ) ) {
                 for (let outputX = 0; outputX < argv.numColumns * argv.pxPerImage; outputX += argv.pxPerImage) {
                     let currentImage = imageArray[currentImageArrayIndex++];
 
@@ -320,11 +320,12 @@ function createOutputGrid(imageArray) {
             }
         } else {
             for (let outputX = 0; outputX < argv.numColumns * argv.pxPerImage; outputX += argv.pxPerImage) {
-                for (let outputY = 0; outputY < argv.numRows * argv.pxPerImage; outputY += ( argv.pxPerImage * argv.heightScale ) ) {
+                for (let outputY = 0; outputY < ( argv.numRows * argv.pxPerImage * argv.heightScale ) ; outputY += ( argv.pxPerImage * argv.heightScale ) ) {
                     let currentImage = imageArray[currentImageArrayIndex++];
 
                     if (currentImage) {
                         outputImage.composite(currentImage, outputX, outputY);
+                        console.log(`Outputting ${currentImage.toString()} to coords ${outputX},${outputY}`);
                     } else {
                         console.error(`Invalid \`currentImage\`!`);
                     }
