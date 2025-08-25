@@ -25,7 +25,13 @@ I generated the three frames from this example using the same set of [my photogr
 - I've left some test images inside `./images/test/` of various colors and sizes which you can use to test out the script.
     - Try running `node index.js -i "./images/test"`
 - Experiment with the way the images are sorted by using the `--sortParameter`...parameter...
-- You can adjust the default column-major sorting order to row-major by passing `--sortOrder row-major` to the script.
+- You can adjust the default column-major sorting order by passing `--sortOrder row-major` or `--sortOrder diagonal` to the script. Here is a diagonal example:
+
+![Example Diagonal Output Image](exampleDiagonal.png)
+
+- If you don't want your images to be clipped to a square format, the `--heightScale` option can be used to specify a desired multiplier for height. For example, books are typically about 1.6 times taller than they are wide, so applying `--heightScale` allows you to create a grid of book covers:
+
+![Example heightScale Output Image](exampleHeightScale.png)
 
 # Some other commands I've run...
 - `node index.js -i d:/Code/colorSortedImageGrid/images/wow -pxPerImage 128 -c 16`
