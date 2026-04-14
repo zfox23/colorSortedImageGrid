@@ -1,9 +1,11 @@
 // Include the various necessary library requirements...
-const { Jimp } = require("jimp");
-const AsciiTable = require('ascii-table')
-const yargs = require('yargs');
-const fs = require('fs');
-const path = require('path');
+import { Jimp } from "jimp";
+import AsciiTable from 'ascii-table';
+import fs from 'fs';
+import path from 'path';
+import yargs from "yargs";
+import { hideBin } from 'yargs/helpers';
+import heicConvert from 'heic-convert';
 
 // Define the possible input image sort orders in this 'enum'.
 const SORT_ORDERS = {
@@ -26,7 +28,7 @@ const VISUALIZATION_MODES = {
 }
 
 // Set up script command line arguments. I love yargs.
-const argv = yargs
+const argv = yargs(hideBin(process.argv))
     .option('numRows', {
         alias: 'r',
         describe: 'Number of rows in the output image',
@@ -160,7 +162,13 @@ function processImages(imageFilenames) {
         imageFilenames.forEach(async (imageFilename) => {
             console.log(`Processing \`${imageFilename}\`...`);
 
-            Jimp.read(path.resolve(path.join(argv.inputDirectory, imageFilename)))
+            const imagePath = path.resolve(path.join(argv.inputDirectory, imageFilename));
+            const isHeic = /\.heic$/i.test(imageFilename);
+            const imageSource = isHeic
+                ? await heicConvert({ buffer: fs.readFileSync(imagePath), format: 'JPEG' })
+                : imagePath;
+
+            Jimp.read(imageSource, { maxMemoryUsageInMB: 2048 })
                 .then((currentImage) => {
                     let currentImageData = {
                         "imageFilename": imageFilename,
@@ -330,11 +338,11 @@ function createColorSortedImageGrid() {
     // Get all the filenames from our input directory.
     let imageFilenames = fs.readdirSync(argv.inputDirectory);
     // Discard all files in the input directory that aren't JPGs or PNGs.
-    imageFilenames = imageFilenames.filter((current) => { return (current.toLowerCase().indexOf('.jpg') > -1 || current.toLowerCase().indexOf('.png') > -1); });
+    imageFilenames = imageFilenames.filter((current) => { return (current.toLowerCase().indexOf('.jpg') > -1 || current.toLowerCase().indexOf('.heic') > -1 || current.toLowerCase().indexOf('.png') > -1); });
 
     // Uh oh! Error! Stinky!
     if (imageFilenames.length === 0) {
-        console.error(`There are no \`.jpg\` or \`.png\` images inside ${argv.inputDirectory}! Quitting...`);
+        console.error(`No images detected inside ${argv.inputDirectory}! Quitting...`);
         return;
     }
 

@@ -3,12 +3,13 @@
   "version": "1.1.1",
   "description": "Given a folder of images, sorts the images by color, then outputs the color-sorted image into one NxM image grid.",
   "main": "index.js",
+  "type": "module",
   "dependencies": {
     "ascii-table": "0.0.9",
-    "jimp": "^1.6.0",
-    "yargs": "^17.7.2"
+    "heic-convert": "^2.1.0",
+    "jimp": "^1.6.1",
+    "yargs": "^18.0.0"
   },
-  "devDependencies": {},
   "scripts": {
     "start": "node index.js",
     "test": "node index.js -i .\\images\\test\\ --visualizationMode normal && node index.js -i .\\images\\test\\ --visualizationMode 4x4 && node index.js -i .\\images\\test\\ --visualizationMode dominant"
